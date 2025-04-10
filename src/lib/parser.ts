@@ -44,4 +44,29 @@ const IGNORE_LIST = [
  *            </body>;
  *            In this case, #content-1 should not be considered as a top level readable element.
  */
-export function getTopLevelReadableElementsOnPage(): HTMLElement[] {}
+export function getTopLevelReadableElementsOnPage(): HTMLElement[] {
+  // read through window to check for existing nodes
+  // ensure node in element is not empty
+  const parent = document.getElementsByTagName("body");
+  let children = parent[0]?.childNodes;
+
+  for (const node of children) {
+    if (!IGNORE_LIST.includes(node.nodeName) && node.hasChildNodes()) {
+      // get children of that node until we get all top-level nodes
+      let childrenL1 = node.childNodes;
+      for (const node of childrenL1) {
+        if (!IGNORE_LIST.includes(node.nodeName) && node.hasChildNodes()) {
+          let childrenL2 = node.childNodes;
+          for (const node of childrenL2) {
+            const childrenL3 = node.childNodes;
+            for (const node of childrenL3) {
+              if (!node.hasChildNodes) {
+                console.log(node.nodeName);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
