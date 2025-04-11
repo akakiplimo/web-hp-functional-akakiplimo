@@ -44,29 +44,67 @@ const IGNORE_LIST = [
  *            </body>;
  *            In this case, #content-1 should not be considered as a top level readable element.
  */
-export function getTopLevelReadableElementsOnPage(): HTMLElement[] {
-  // read through window to check for existing nodes
-  // ensure node in element is not empty
-  const parent = document.getElementsByTagName("body");
-  let children = parent[0]?.childNodes;
 
-  for (const node of children) {
-    if (!IGNORE_LIST.includes(node.nodeName) && node.hasChildNodes()) {
-      // get children of that node until we get all top-level nodes
-      let childrenL1 = node.childNodes;
-      for (const node of childrenL1) {
-        if (!IGNORE_LIST.includes(node.nodeName) && node.hasChildNodes()) {
-          let childrenL2 = node.childNodes;
-          for (const node of childrenL2) {
-            const childrenL3 = node.childNodes;
-            for (const node of childrenL3) {
-              if (!node.hasChildNodes) {
-                console.log(node.nodeName);
-              }
-            }
-          }
-        }
+// recursively collect elements that meet the criteria
+function collectTopLevel(elements: HTMLCollection, result: HTMLElement[]) {
+  for (let i = 0; i < elements.length; i++) {
+    const element = elements[i] as HTMLElement;
+    // Check if the element is an HTML element
+    // and not a text node or comment node
+    // nodeType 1 is for ELEMENT_NODE
+    if (element.nodeType === Node.ELEMENT_NODE) {
+      // Put tag name in caps to ensure it will match with the ignore list
+      const nodeName = element.nodeName;
+
+      // continue to next element if element is in ignore list
+      if (IGNORE_LIST.includes(nodeName)) continue;
+
+      // check if the element has text content and is not empty
+      const hasTextContent =
+        element.textContent && element.textContent.trim() !== "";
+
+      // skip ignored elements or elements without text content
+      if (!hasTextContent) continue;
+
+      // check if element contains other top-level readable elements
+      const childElements = Array.from(element.children);
+      // if all child elements are in the ignore list, skip the element @TODO
+
+      const allChildrenIgnored = childElements.every((child) => {
+        const childNodeName = child.nodeName;
+        return IGNORE_LIST.includes(childNodeName);
+      });
+
+      if (allChildrenIgnored && element.children.length > 0) continue;
+
+      const hasOtherTopLevelElements = childElements.some((child) => {
+        const childNodeName = child.nodeName;
+        console.log("child", childNodeName);
+        const childIsIgnored = IGNORE_LIST.includes(childNodeName);
+        const childHasTextContent =
+          child.textContent && child.textContent.trim() !== "";
+        const childHasMultipleChildren = child.children.length > 1;
+
+        return (
+          !childIsIgnored && childHasTextContent && childHasMultipleChildren
+        );
+      });
+
+      // add the element to the result if it does not contain other top-level readable elements
+      if (hasOtherTopLevelElements) {
+        // recursively process child elements
+        collectTopLevel(element.children, result);
+      } else {
+        result.push(element);
       }
     }
   }
+}
+
+export function getTopLevelReadableElementsOnPage(): HTMLElement[] {
+  const body = document.body;
+  const result: HTMLElement[] = [];
+  collectTopLevel(body.children, result);
+
+  return result;
 }
